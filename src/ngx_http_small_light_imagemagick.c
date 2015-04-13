@@ -76,6 +76,9 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
     double                                  iw, ih, q;
     char                                   *unsharp, *sharpen, *blur, *of, *of_orig;
     MagickWand                             *trans_wand, *canvas_wand;
+    MagickWand                             *radius_image;
+    DrawingWand                            *radius_wand;
+    PixelWand                              *radius_color;
     DrawingWand                            *border_wand;
     PixelWand                              *bg_color, *canvas_color, *border_color;
     GeometryInfo                            geo;
@@ -260,6 +263,30 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
                           __FUNCTION__,
                           __LINE__);
         }
+    }
+
+    /* radius. */
+    if (sz.rd > 0) {
+        radius_wand = NewDrawingWand();
+        radius_image = NewMagickWand();
+        radius_color = NewPixelWand();
+
+        PixelSetColor(radius_color, "transparent");
+        MagickNewImage(radius_image, sz.dw, sz.dh, radius_color);
+        MagickSetImageBackgroundColor(radius_image, radius_color);
+        PixelSetColor(radius_color, "white");
+        DrawSetFillColor(radius_wand, radius_color);
+        PixelSetColor(radius_color, "black");
+        DrawSetStrokeColor(radius_wand, radius_color);
+        DrawSetStrokeWidth(radius_wand, 10);
+
+        DrawRoundRectangle(radius_wand, 5, 5, sz.dw - 6, sz.dh - 6, sz.rd, sz.rd);
+
+        MagickDrawImage(radius_image, radius_wand);
+        MagickCompositeImage(ictx->wand, radius_image, DstInCompositeOp, 0, 0);
+        DestroyPixelWand(radius_color);
+        DestroyMagickWand(radius_image);
+        DestroyDrawingWand(radius_wand);
     }
 
     /* border. */
