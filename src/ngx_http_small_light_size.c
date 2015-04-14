@@ -38,7 +38,7 @@ void ngx_http_small_light_calc_image_size(ngx_http_request_t *r,
     ngx_http_small_light_coord_t  sx_coord, sy_coord, sw_coord, sh_coord;
     ngx_http_small_light_coord_t  dx_coord, dy_coord, dw_coord, dh_coord;
     char                         *da_str, *pt, *prm_ds_str, da, prm_ds;
-    double                        dwo;
+    double                        dwo, rd;
     ngx_int_t                     pt_flg;
 
     ngx_http_small_light_parse_coord(&sx_coord, NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "sx"));
@@ -103,11 +103,21 @@ void ngx_http_small_light_calc_image_size(ngx_http_request_t *r,
     sz->ch = ngx_http_small_light_parse_double(NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "ch"));
     sz->bw = ngx_http_small_light_parse_double(NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "bw"));
     sz->bh = ngx_http_small_light_parse_double(NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "bh"));
-    sz->rd = ngx_http_small_light_parse_int(NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "rd"));
+    sz->rx = ngx_http_small_light_parse_double(NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "rx"));
+    sz->ry = ngx_http_small_light_parse_double(NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "ry"));
     sz->ix = ngx_http_small_light_parse_int(NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "ix"));
     sz->iy = ngx_http_small_light_parse_int(NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "iy"));
     ngx_http_small_light_parse_color(&sz->cc,  NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "cc"));
     ngx_http_small_light_parse_color(&sz->bc,  NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "bc"));
+
+    if (!sz->rx && !sz->ry) {
+        rd = ngx_http_small_light_parse_double(NGX_HTTP_SMALL_LIGHT_PARAM_GET_LIT(&ctx->hash, "rd"));
+        if (rd > 0.0) {
+            sz->rx = rd;
+            sz->ry = rd;
+        }
+    }
+
 #if 0
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
                   "size info:sx=%f,sy=%f,sw=%f,sh=%f,dw=%f,dh=%f,cw=%f,ch=%f,bw=%f,bh=%f,ix=%d,iy=%d",
