@@ -86,8 +86,9 @@ typedef struct {
     ngx_http_small_light_color_t cc;
     double                       bw;
     double                       bh;
+    double                       rx;
+    double                       ry;
     ngx_http_small_light_color_t bc;
-    ngx_int_t                    rd;
     ngx_int_t                    ix;
     ngx_int_t                    iy;
     double                       aspect;

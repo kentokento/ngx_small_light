@@ -75,11 +75,8 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
     int                                     rmprof_flg, progressive_flg, cmyk2rgb_flg;
     double                                  iw, ih, q;
     char                                   *unsharp, *sharpen, *blur, *of, *of_orig;
-    MagickWand                             *trans_wand, *canvas_wand;
-    MagickWand                             *radius_image;
-    DrawingWand                            *radius_wand;
-    PixelWand                              *radius_color;
-    DrawingWand                            *border_wand;
+    MagickWand                             *trans_wand, *canvas_wand, *radius_wand;
+    DrawingWand                            *drawing_wand;
     PixelWand                              *bg_color, *canvas_color, *border_color;
     GeometryInfo                            geo;
     ngx_fd_t                                fd;
@@ -266,55 +263,55 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
     }
 
     /* radius. */
-    if (sz.rd > 0) {
-        radius_wand = NewDrawingWand();
-        radius_image = NewMagickWand();
-        radius_color = NewPixelWand();
+    if (sz.rx > 0.0 || sz.ry > 0.0) {
+        drawing_wand = NewDrawingWand();
+        radius_wand = NewMagickWand();
+        border_color = NewPixelWand();
 
-        PixelSetColor(radius_color, "transparent");
-        MagickNewImage(radius_image, sz.dw, sz.dh, radius_color);
-        MagickSetImageBackgroundColor(radius_image, radius_color);
-        PixelSetColor(radius_color, "white");
-        DrawSetFillColor(radius_wand, radius_color);
-        PixelSetColor(radius_color, "black");
-        DrawSetStrokeColor(radius_wand, radius_color);
-        DrawSetStrokeWidth(radius_wand, 10);
+        PixelSetColor(border_color, "transparent");
+        MagickNewImage(radius_wand, sz.dw, sz.dh, border_color);
+        MagickSetImageBackgroundColor(radius_wand, border_color);
+        PixelSetColor(border_color, "white");
+        DrawSetFillColor(drawing_wand, border_color);
+        PixelSetColor(border_color, "black");
+        DrawSetStrokeColor(drawing_wand, border_color);
+        DrawSetStrokeWidth(drawing_wand, 10);
 
-        DrawRoundRectangle(radius_wand, 5, 5, sz.dw - 6, sz.dh - 6, sz.rd, sz.rd);
+        DrawRoundRectangle(drawing_wand, 5, 5, sz.dw - 6, sz.dh - 6, sz.rx, sz.ry);
 
-        MagickDrawImage(radius_image, radius_wand);
-        MagickCompositeImage(ictx->wand, radius_image, DstInCompositeOp, 0, 0);
-        DestroyPixelWand(radius_color);
-        DestroyMagickWand(radius_image);
-        DestroyDrawingWand(radius_wand);
+        MagickDrawImage(radius_wand, drawing_wand);
+        MagickCompositeImage(ictx->wand, radius_wand, DstInCompositeOp, 0, 0);
+        DestroyPixelWand(border_color);
+        DestroyMagickWand(radius_wand);
+        DestroyDrawingWand(drawing_wand);
     }
 
     /* border. */
     if (sz.bw > 0.0 || sz.bh > 0.0) {
-        border_wand = NewDrawingWand();
+        drawing_wand = NewDrawingWand();
         border_color = NewPixelWand();
         PixelSetRed(border_color,   sz.bc.r / 255.0);
         PixelSetGreen(border_color, sz.bc.g / 255.0);
         PixelSetBlue(border_color,  sz.bc.b / 255.0);
         PixelSetAlpha(border_color, sz.bc.a / 255.0);
-        DrawSetFillColor(border_wand, border_color);
-        DrawSetStrokeColor(border_wand, border_color);
-        DrawSetStrokeWidth(border_wand, 1);
+        DrawSetFillColor(drawing_wand, border_color);
+        DrawSetStrokeColor(drawing_wand, border_color);
+        DrawSetStrokeWidth(drawing_wand, 1);
 
         if (sz.cw > 0.0 && sz.ch > 0.0) {
-            DrawRectangle(border_wand, 0, 0, sz.cw - 1, sz.bh - 1);
-            DrawRectangle(border_wand, 0, 0, sz.bw - 1, sz.ch - 1);
-            DrawRectangle(border_wand, 0, sz.ch - sz.bh, sz.cw - 1, sz.ch - 1);
-            DrawRectangle(border_wand, sz.cw - sz.bw, 0, sz.cw - 1, sz.ch - 1);
+            DrawRectangle(drawing_wand, 0, 0, sz.cw - 1, sz.bh - 1);
+            DrawRectangle(drawing_wand, 0, 0, sz.bw - 1, sz.ch - 1);
+            DrawRectangle(drawing_wand, 0, sz.ch - sz.bh, sz.cw - 1, sz.ch - 1);
+            DrawRectangle(drawing_wand, sz.cw - sz.bw, 0, sz.cw - 1, sz.ch - 1);
         } else {
-            DrawRectangle(border_wand, 0, 0, sz.dw - 1, sz.bh - 1);
-            DrawRectangle(border_wand, 0, 0, sz.bw - 1, sz.dh - 1);
-            DrawRectangle(border_wand, 0, sz.dh - sz.bh, sz.dw - 1, sz.dh - 1);
-            DrawRectangle(border_wand, sz.dw - sz.bw, 0, sz.dw - 1, sz.dh - 1);
+            DrawRectangle(drawing_wand, 0, 0, sz.dw - 1, sz.bh - 1);
+            DrawRectangle(drawing_wand, 0, 0, sz.bw - 1, sz.dh - 1);
+            DrawRectangle(drawing_wand, 0, sz.dh - sz.bh, sz.dw - 1, sz.dh - 1);
+            DrawRectangle(drawing_wand, sz.dw - sz.bw, 0, sz.dw - 1, sz.dh - 1);
         }
-        MagickDrawImage(ictx->wand, border_wand);
+        MagickDrawImage(ictx->wand, drawing_wand);
         DestroyPixelWand(border_color);
-        DestroyDrawingWand(border_wand);
+        DestroyDrawingWand(drawing_wand);
     }
 
     /* embed icon */
