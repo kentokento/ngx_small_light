@@ -1,5 +1,5 @@
 /**
-   Copyright (c) 2012-2014 Tatsuhiko Kubo <cubicdaiya@gmail.com>
+   Copyright (c) 2012-2015 Tatsuhiko Kubo <cubicdaiya@gmail.com>
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -103,6 +103,7 @@ typedef struct ngx_http_small_light_ctx_t {
     size_t content_length;
     const char *inf;
     const char *of;
+    u_char *content_orig;
     u_char *content;
     u_char *last;
     void *ictx;

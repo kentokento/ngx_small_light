@@ -1,5 +1,5 @@
 /**
-   Copyright (c) 2012-2014 Tatsuhiko Kubo <cubicdaiya@gmail.com>
+   Copyright (c) 2012-2015 Tatsuhiko Kubo <cubicdaiya@gmail.com>
    Copyright (c) 1996-2011 livedoor Co.,Ltd.
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -97,9 +97,6 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
     /* adjust image size */
     ngx_http_small_light_calc_image_size(r, ctx, &sz, 10000.0, 10000.0);
 
-    /* init */
-    ictx->wand = NewMagickWand();
-
     /* prepare */
     if (sz.jpeghint_flg != 0) {
         p = ngx_snprintf((u_char *)jpeg_size_opt, sizeof(jpeg_size_opt) - 1, "%dx%d", (ngx_int_t)sz.dw, (ngx_int_t)sz.dh);
@@ -139,6 +136,7 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
 
     /* pass through. */
     if (sz.pt_flg != 0) {
+        ctx->of = ctx->inf;
         return NGX_OK;
     }
 
@@ -200,18 +198,21 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
         DestroyPixelWand(canvas_color);
         if (status == MagickFalse) {
             r->err_status = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            DestroyMagickWand(canvas_wand);
             return NGX_ERROR;
         }
 
         status = MagickTransformImageColorspace(canvas_wand, color_space);
         if (status == MagickFalse) {
             r->err_status = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            DestroyMagickWand(canvas_wand);
             return NGX_ERROR;
         }
 
         status = MagickCompositeImage(canvas_wand, ictx->wand, AtopCompositeOp, sz.dx, sz.dy);
         if (status == MagickFalse) {
             r->err_status = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            DestroyMagickWand(canvas_wand);
             return NGX_ERROR;
         }
         DestroyMagickWand(ictx->wand);
@@ -329,8 +330,6 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
             return NGX_ERROR;
         }
 
-        icon_wand = NewMagickWand();
-
         embedicon_len      = ngx_strlen(embedicon);
         embedicon_path_len = ctx->material_dir->len + ngx_strlen("/") + embedicon_len;
         if (embedicon_path_len > sizeof(embedicon_path) - 1) {
@@ -374,17 +373,19 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
             return NGX_ERROR;
         }
 
+        icon_wand = NewMagickWand();
         if (MagickReadImage(icon_wand, (char *)embedicon_path) == MagickFalse) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                           "failed to read embed icon image file:%s %s:%d",
                           embedicon_path,
                           __FUNCTION__,
                           __LINE__);
+            DestroyMagickWand(icon_wand);
             return NGX_ERROR;
         }
 
         MagickCompositeImageChannel(ictx->wand, AllChannels, icon_wand, OverCompositeOp, sz.ix, sz.iy);
-        ClearMagickWand(icon_wand);
+        DestroyMagickWand(icon_wand);
     }
 
     /* set params. */
