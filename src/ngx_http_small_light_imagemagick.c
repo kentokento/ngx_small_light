@@ -281,7 +281,11 @@ ngx_int_t ngx_http_small_light_imagemagick_process(ngx_http_request_t *r, ngx_ht
         DrawSetStrokeColor(radius_wand, radius_color);
         DrawSetStrokeWidth(radius_wand, 10);
 
-        DrawRoundRectangle(radius_wand, 5, 5, sz.dw - 6, sz.dh - 6, sz.rd, sz.rd);
+        if (sz.cw > 0.0 && sz.ch > 0.0) {
+            DrawRoundRectangle(radius_wand, 5, 5, sz.cw - 6, sz.ch - 6, sz.rd, sz.rd);
+        } else {
+            DrawRoundRectangle(radius_wand, 5, 5, sz.dw - 6, sz.dh - 6, sz.rd, sz.rd);
+        }
 
         MagickDrawImage(radius_image, radius_wand);
         MagickCompositeImage(ictx->wand, radius_image, DstInCompositeOp, 0, 0);
